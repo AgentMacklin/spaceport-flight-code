@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Clean log and/or data files, based on arguments
+# Run cleantxt like so:
+#   ./cleantxt ALL
+
+if [ $1 = "LOG" ]; then
+    find -type f -name '*LOG*' -delete
+elif [ $1 = "DATA" ]; then
+    find -type f -name '*DATA*' -delete
+elif [ $1 = "ALL" ]; then
+    find -type f -name '*LOG*' -delete
+    find -type f -name '*DATA*' -delete
+else
+    echo "==> clean_logs: invalid argument was passed to script"
+fi
