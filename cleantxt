@@ -11,5 +11,5 @@ elif [ $1 = "ALL" ]; then
     find -type f -name '*LOG*' -delete
     find -type f -name '*DATA*' -delete
 else
-    echo "==> clean_logs: invalid argument was passed to script"
+    find -type f -name '*$1*' -delete
 fi
