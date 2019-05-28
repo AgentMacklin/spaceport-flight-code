@@ -2,8 +2,8 @@
 
 import time
 from datetime import datetime
-from prettytable import PrettyTable, PLAIN_COLUMNS
 from random import randint
+
 
 LOG_HEADER = """\
        ___         
