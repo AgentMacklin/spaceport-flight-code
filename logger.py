@@ -4,7 +4,7 @@ import time
 from datetime import datetime
 from random import randint
 
-
+# why
 LOG_HEADER = """\
        ___         
 _____ / _ \ _____  
@@ -64,6 +64,7 @@ class Logger:
             self.log_file.write(log_text)
 
     def write_to_table(self, data_tup: tuple):
+        """ Write right-justified data to file. """
         for i in range(len(data_tup)):
             data = f"{data_tup[i]:.3f}"
             indent = str(" ") * (len(self.headers[i]) - len(data))
@@ -79,9 +80,13 @@ class Logger:
 
 # This is for testing
 if __name__ == "__main__":
+    alt = 400
     events = Logger("LOG")
     events.event("Initializing sensors")
     events.event("Reading altitude")
+    events.event(
+        f"Altitude initialized to {alt:,} feet, setting target to {alt + 10000:,} feet"
+    )
     events.event("Standing by...")
     events.event("Launch!")
     events.event("Beginning data log")

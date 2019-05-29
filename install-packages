@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Python packages necessary for the flight program to run
+PYTHON_PACKAGES=(
+    adafruit-blinka
+    adafruit_servokit
+    )
+
+# Dumb install of pip and pip3
+# sudo apt install python-pip
+
+# Install all packages
+for package in $PYTHON_PACKAGES; do
+    sudo pip3 install $package
+    pacman -Qi $package
+done
