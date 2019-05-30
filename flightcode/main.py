@@ -1,20 +1,27 @@
-from logger import Logger
-from pid import PID
-import vehicle
+from flightcode.logger import Logger
+from flightcode.pid import PID
+import flightcode.vehicle as vehicle
+from time import monotonic, sleep
 import board
 import busio
 
 
-TARGET_ALT = 10000
+TARGET_ALT = 10000  # altitude to reach from ground
+TIME_SINCE_LAUNCH = 0  # used for data logging during coast mode
+DELTA_T = 0
 
+
+# Mode of operation and flight readiness flags
 STATUS = vehicle.FlightStatus.GO
 MODE = vehicle.Runmode.STANDBY
 
 
 # SENSOR AND LOG INITIALIZATION
-# -----------------------------
 
 # Opening up flight log, so we can see what happened during the flight
+event_log = Logger("LOG")
+
+# Data log
 data_log = Logger(
     "DATA",
     headers=(
@@ -29,10 +36,9 @@ data_log = Logger(
         "Position (y)",
         "Altitude (z)",
         "PID Controller Output",
-        "Drag Plate Position",
+        "Projected Altitude",
     ),
 )
-event_log = Logger("LOG")
 event_log.event("Initializing connection to sensors")
 
 # Create I2C object
@@ -66,21 +72,26 @@ except (RuntimeError, OSError, ValueError):
     event_log.error("Failed to connect to servos")
     STATUS = vehicle.FlightStatus.NOGO
 
-# MAIN EVENT LOOP
-# ---------------
 
+# MAIN EVENT LOOP
 if STATUS is vehicle.FlightStatus.GO:
     event_log.event("Reading current altitude")
     init_alt = vehicle.init_current_altitude(mpl)
-    threshold_alt = init_alt + 150
+    threshold_alt = init_alt + 150  # altitude at which to switch to launch mode
     target = init_alt + TARGET_ALT
     event_log.event(
         f"Altitude initialized to {init_alt:,}, setting target to {target:,}"
     )
     event_log.event("Standing by for launch...")
 
+    # Create a PID controller object
+    pid = PID(0.1, 0.05, 0.001, target, min_output=0, max_output=180)
+
     # Main event loop
     while True:
+        # Time elapsed since last loop
+        DELTA_T = monotonic() - DELTA_T
+
         # Waiting for launch on the launhpad
         if MODE is vehicle.Runmode.STANDBY:
             if vehicle.altitude(mpl) > init_alt:
@@ -91,19 +102,53 @@ if STATUS is vehicle.FlightStatus.GO:
 
         # Waiting for motor to burn out
         elif MODE is vehicle.Runmode.LAUNCH:
-            if bno.read_gravity() < 0:
+            if vehicle.inertial_acceleration(bno)[2] < 0:
                 MODE = vehicle.Runmode.COAST
                 event_log.event("Entering drag mode (COAST)")
+                TIME_SINCE_LAUNCH = monotonic()  # start coast counter
+                vehicle.ALTITUDE = mpl.altitude
 
         # Deploy drag plates and log data
         elif MODE is vehicle.Runmode.COAST:
-            pass
+            acceleration = vehicle.inertial_acceleration(bno)
+            velocity = vehicle.velocity(mpl, acceleration, DELTA_T)
+            position = vehicle.position(velocity, DELTA_T)
+            p_alt = vehicle.projected_altitude(
+                acceleration[2], velocity[2], mpl.altitude
+            )
+            angle = pid.output(p_alt, DELTA_T)
+            vehicle.move_servos(servos, angle)
+            data_tup = (
+                monotonic() - TIME_SINCE_LAUNCH,
+                acceleration[0],
+                acceleration[1],
+                acceleration[2],
+                velocity[0],
+                velocity[1],
+                velocity[2],
+                position[0],
+                position[1],
+                vehicle.altitude(mpl),
+                angle,
+                p_alt,
+            )
+            if vehicle.vertical_velocity(mpl, DELTA_T) < 0:
+                if vehicle.verify_apogee(mpl, DELTA_T):
+                    MODE = vehicle.Runmode.DESCENT
+                    event_log.event(f"Reached apogee: {mpl.altitude:,} feet")
+                    event_log.event("Switching to DESCENT mode")
 
         # Retract plates and close everything down
         elif MODE is vehicle.Runmode.DESCENT:
             event_log.event("Closing data log")
             data_log.close()
             # Retract plates
+            vehicle.move_servos(servos, 0)
+            event_log.event("Retracting plates")
+            sleep(3)  # give the servos some time to retract
+            event_log.event("Flight complete, exiting program")
+            event_log.close()
+            break
 
 elif STATUS is vehicle.FlightStatus.NOGO:
     event_log.event("Errors occurred, flight is a no go, closing files and exiting")

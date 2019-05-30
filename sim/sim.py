@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from atmosphere import Atmosphere
-from pid import PID
-from vehicle import projected_altitude
+from src.pid import PID
+from src.vehicle import projected_altitude
 
 CD = 0.5  # Approximate drag coefficient of vehicle
 AREA = 0.79  # Frontal area of rocket
