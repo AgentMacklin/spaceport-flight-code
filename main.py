@@ -31,7 +31,7 @@ except RuntimeError:
 try:
     bno = vehicle.bno055.BNO055(i2c)
     event_log.event("Connection to BNO055 successful")
-except RuntimeError:
+except (RuntimeError, OSError, ValueError):
     event_log.error("Failed to connect to BNO055")
     STATUS = vehicle.FlightStatus.NOGO
 
@@ -39,23 +39,26 @@ except RuntimeError:
 try:
     mpl = vehicle.mpl3115a2.MPL3115A2(i2c)
     event_log.event("Connection to MPL3115 successful")
-except RuntimeError:
+except (RuntimeError, OSError, ValueError):
     event_log.error("Failed to connect to MPL3115")
     STATUS = vehicle.FlightStatus.NOGO
 
 # Create a connection to servos
 try:
     servos = vehicle.ServoKit(channels=16, i2c=i2c)
-except (RuntimeError, ValueError):
+except (RuntimeError, OSError, ValueError):
     event_log.error("Failed to connect to servos")
     STATUS = vehicle.FlightStatus.NOGO
 
 
 # Per docs, must call bno.begin() once before calling other functions
-if bno.begin() is False:
-    event_log.error("BNO055 connected but failed to start")
+try:
+    if bno.begin() is False:
+        event_log.error("BNO055 connected but failed to start")
+        STATUS = vehicle.FlightStatus.NOGO
+except NameError:
     STATUS = vehicle.FlightStatus.NOGO
-
+    
 
 # MAIN EVENT LOOP
 # ---------------
@@ -97,7 +100,7 @@ if STATUS is vehicle.FlightStatus.GO:
             # Retract plates
 
 elif STATUS is vehicle.FlightStatus.NOGO:
-    event_log.event("Error occurred, closing log files and exiting")
+    event_log.event("Errors occurred, flight is a no go, closing files and exiting")
     event_log.close()
     data_log.close()
 

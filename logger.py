@@ -6,13 +6,13 @@ from random import randint
 
 # why
 LOG_HEADER = """\
-       ___         
-_____ / _ \ _____  
-|_ _|/ /_\ \|_ _|  
- | |/ _____ \| |   
- | / /_   _\ \ |   
-|_____|___|_____|  
-  \___________/    
+         ___         
+  _____ / _ \ _____  
+  |_ _|/ /_\ \|_ _|  
+   | |/ _____ \| |   
+   | / /_   _\ \ |   
+  |_____|___|_____|  
+    \___________/    
   
 """
 
@@ -47,14 +47,14 @@ class Logger:
         """ Write text to event log """
         if not self.log_file.closed:
             ctime = self.time_stamp()
-            log_text = f"[ {ctime} | EVENT ]\t{msg}\n"
+            log_text = f"[ {ctime} ][ EVENT ]\t{msg}\n"
             self.log_file.write(log_text)
 
     def error(self, msg):
         """ Log an error """
         if not self.log_file.closed:
             ctime = self.time_stamp()
-            log_text = f"[ {ctime} | ERROR ]\t{msg}\n"
+            log_text = f"[ {ctime} ][ ERROR ]\t{msg}\n"
             self.log_file.write(log_text)
 
     def writeln(self, msg):

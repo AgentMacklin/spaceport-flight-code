@@ -1,4 +1,4 @@
-import Adafruit_BNO055.BNO055 as bno055
+import adafruit_bno055 as bno055
 import adafruit_mpl3115a2 as mpl3115a2
 from adafruit_servokit import ServoKit
 from time import time

@@ -3,4 +3,10 @@
 # Run cleantxt like so:
 #   ./cleantxt ALL
 
-find -type f -name "*${1}*" -delete
+if [ "$1" == "ALL" ]; then
+	find -type f -name "*DATA*" -delete
+	find -type f -name "*LOG*" -delete
+else
+	find -type f -name "*${1}*" -delete
+fi
+
