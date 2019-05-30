@@ -3,14 +3,12 @@
 # Python packages necessary for the flight program to run
 PYTHON_PACKAGES=(
     adafruit-blinka
-    adafruit_servokit
+    adafruit-circuitpython-bno055
+    adafruit-circuitpython-mpl3115a2
+    adafruit-circuitpython-servokit
     )
-
-# Dumb install of pip and pip3
-# sudo apt install python-pip
 
 # Install all packages
 for package in $PYTHON_PACKAGES; do
-    sudo pip3 install $package
-    pacman -Qi $package
+    python3.7 -m pip install --user $package
 done
