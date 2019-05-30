@@ -15,7 +15,23 @@ MODE = vehicle.Runmode.STANDBY
 # -----------------------------
 
 # Opening up flight log, so we can see what happened during the flight
-data_log = Logger("DATA", headers=(""))
+data_log = Logger(
+    "DATA",
+    headers=(
+        "Time (seconds)",
+        "Acceleration (x)",
+        "Acceleration (y)",
+        "Acceleration (z)",
+        "Velocity (x)",
+        "Velocity (y)",
+        "Velocity (z)",
+        "Position (x)",
+        "Position (y)",
+        "Altitude (z)",
+        "PID Controller Output",
+        "Drag Plate Position",
+    ),
+)
 event_log = Logger("LOG")
 event_log.event("Initializing connection to sensors")
 
@@ -49,16 +65,6 @@ try:
 except (RuntimeError, OSError, ValueError):
     event_log.error("Failed to connect to servos")
     STATUS = vehicle.FlightStatus.NOGO
-
-
-# Per docs, must call bno.begin() once before calling other functions
-try:
-    if bno.begin() is False:
-        event_log.error("BNO055 connected but failed to start")
-        STATUS = vehicle.FlightStatus.NOGO
-except NameError:
-    STATUS = vehicle.FlightStatus.NOGO
-    
 
 # MAIN EVENT LOOP
 # ---------------
