@@ -1,0 +1,141 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# A better system configuration script than the one I wrote in Bash, theoretically...
+
+# install colorize if not already installed before proceeding
+begin
+  gem 'colorize' # colors are super unnecessary but I like them
+rescue Gem::LoadError
+  `sudo gem install colorize`
+end
+require 'colorize'
+require 'mkmf' # for checking if programs are installed
+
+puts
+puts ' ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ ██╗   ██╗██████╗ ███████╗██████╗ '.cyan
+puts '██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ ██║   ██║██╔══██╗██╔════╝██╔══██╗'.cyan
+puts '██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗██║   ██║██████╔╝█████╗  ██████╔╝'.cyan
+puts '██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══██╗'.cyan
+puts '╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝╚██████╔╝██║  ██║███████╗██║  ██║'.cyan
+puts ' ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝'.cyan
+puts
+
+module ExitStatus
+  SUCCESS = 0
+  FAILURE = 1
+end
+
+
+# Simple log messages to terminal
+class Logger
+  @prog_name = 'configurer'
+
+  def self.error(msg)
+    puts "[#{@prog_name.red}] #{msg}"
+  end
+
+  def self.success(msg)
+    puts "[#{@prog_name.green}] #{msg}"
+  end
+
+  def self.info(msg)
+    puts "[#{@prog_name.blue}] #{msg}"
+  end
+end
+
+# Abstract away package management and installation
+class PackageManager
+  @@commands = {
+    'debian' => 'sudo apt install -y ',
+    'arch' => 'sudo pacman -S --noconfirm '
+  }
+
+  # Get distro and select system package manager based on it
+  def initialize
+    @status = ExitStatus::SUCCESS
+    @failed_installs = []
+    @release = `cat /etc/*-release | grep -i "LIKE"`.split('=')[1].strip
+    @manager = @@commands[@release]
+    Logger.info("Current linux distribution: #{@release}")
+  end
+
+  # install a package and check if it was successful
+  def install(package)
+    command = @manager + package
+    Logger.info("Installing #{package}")
+    system(command)
+    check_install_status(package)
+  end
+
+  def pip(package)
+    command = "python3 -m pip install --user " + package
+    Logger.info("Installing #{package}")
+    system(command)
+    check_python_install(package)
+  end
+
+  # Determine the proper command for checking if a package is installed,
+  # based on the current distro
+  def package_is_installed_command
+    case @release
+    when 'arch'
+      'pacman -Qi '
+    when 'debian'
+      'apt list '
+    end
+  end
+
+  # Log a message if package is installed successfully, or add to list
+  # of failed installs if not
+  def check_install_status(package)
+    command = package_is_installed_command + package
+    if system(command)
+      Logger.success("#{package} installed successfully")
+    else
+      Logger.error("#{package} failed to install")
+      @failed_installs << package
+      @status = ExitStatus::FAILURE if @status == ExitStatus::SUCCESS
+    end
+  end
+
+  def check_python_install(package)
+    if system("python3.7 -m pip list | grep -F #{package}")
+      Logger.success("Python package #{package} installed successfully")
+    else
+      Logger.error("Python package #{package} failed to install")
+      @failed_installs << package
+      @status = ExitStatus::FAILURE if @status == ExitStatus::SUCCESS
+    end
+  end
+
+  # Print a list of failed installs
+  def list_failed_installs
+    if @status == ExitStatus::FAILURE
+      Logger.error('The following packages failed to install...')
+      @failed_installs.each do |package|
+        puts "  #{'==>'.red} #{package}"
+      end
+    else
+      Logger.success('configurer ran successfully')
+    end
+  end
+end
+
+# Create a new package installer
+packager = PackageManager.new
+
+# Packages to install
+packages = [
+  "adafruit-blinka",
+  "adafruit-circuitpython-bno055",
+  "adafruit-circuitpython-mpl3115a2",
+  "adafruit-circuitpython-servokit",
+]
+
+packages.each do |package|
+  packager.pip(package)
+end
+
+# Print a list of failed installs at the end of the script
+packager.list_failed_installs
