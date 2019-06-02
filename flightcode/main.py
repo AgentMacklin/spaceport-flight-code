@@ -1,3 +1,54 @@
+#
+# Main entry point for flight code, below is a flow diagram for the flight code
+# logic.
+#
+#
+#              Entry point
+#      +---------------------------+                      +-------------------------------+
+#      |                           |   Connections were   |                               |
+#      | Open log files and create |   successful         | Read in current altitude, set |
+#      | connections to sensors    +--------------------->+ target altitude accordingly.  |
+#      |                           |                      | Enter standby mode            |
+#      +------------+--------------+                      |                               |
+#                   |                                     +---------------+---------------+
+#          Errors   |                                                     |
+#          occured  |                               +---------------------+
+#                   |                               |                     v
+#      +------------+--------------+                |     +---------------+---------------+
+#      |                           |             No |     |                               |
+#      | Flight is a no go, system |                |     | Has altitude increased by 100 |
+# +----+ remains dormant           |                +-----+ feet?                         |
+# |    |                           |                      |                               |
+# |    +---------------------------+                      +------------------+------------+
+# |                                                                          |
+# |                                                                          | Yes
+# |    +----------------+       +---------------------------+                v
+# |    |                |       |                           |     +----------+------------+
+# |    | Switch to drag |       | Has vertical acceleration |     |                       |
+# |    | mode           +<------+ gone from positive to     +--+--+ Switch to launch mode |
+# |    |                |  Yes  | negative?                 |  ^  |                       |
+# |    +---+------------+       |                           |  |  +-----------------------+
+# |        |                    +-------------+-------------+  |
+# |        |     +-----+                      |                |
+# |        +<----+ PID +<---+                 +----------------+
+# |        |     +-----+    | No                     No
+# |        v                |
+# |    +---+----------------+------+
+# |    |                           |        +------------------------+
+# |    | Has the vertical velocity |  Yes   |                        |
+# |    | become negative?          +------->+ Switch to descent mode |
+# |    |                           |        |                        |
+# |    +---------------------------+        +-----------+------------+
+# |                                                     |
+# |    +---------------------------+                    |
+# |    |                           |                    |
+# |    | Close log files and make  |                    |
+# +--->+ sure plates are retracted +<-------------------+
+#      |                           |
+#      +---------------------------+
+#                End
+
+
 from flightcode.logger import Logger
 from flightcode.pid import PID
 import flightcode.vehicle as vehicle
@@ -75,9 +126,10 @@ except (RuntimeError, OSError, ValueError):
 
 # MAIN EVENT LOOP
 if STATUS is vehicle.FlightStatus.GO:
+    DELTA_T = monotonic()
     event_log.event("Reading current altitude")
     init_alt = vehicle.init_current_altitude(mpl)
-    threshold_alt = init_alt + 150  # altitude at which to switch to launch mode
+    threshold_alt = init_alt + 100  # altitude at which to switch to launch mode
     target = init_alt + TARGET_ALT
     event_log.event(
         f"Altitude initialized to {init_alt:,}, setting target to {target:,}"
