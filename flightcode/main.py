@@ -49,9 +49,9 @@
 #                End
 
 
-from flightcode.logger import Logger
-from flightcode.pid import PID
-import flightcode.vehicle as vehicle
+from logger import Logger
+from pid import PID
+import vehicle as vehicle
 from time import monotonic, sleep
 import board
 import busio

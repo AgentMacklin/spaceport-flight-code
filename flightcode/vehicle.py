@@ -4,13 +4,13 @@ from adafruit_servokit import ServoKit
 from time import monotonic
 from enum import IntEnum
 from math import log, fabs
-import numpy as np
+from numpy import array, ndarray, asarray
 
 GRAV = 32.174
 METERSTOFEET = 3.2808399
 
-VELOCITY = np.ndarray(shape=(1, 3))
-POSITION: np.ndarray = np.ndarray(shape=(1, 3))
+VELOCITY = ndarray(shape=(1, 3))
+POSITION: ndarray = ndarray(shape=(1, 3))
 ALTITUDE: float = 0
 
 # Different modes of operation during flight
@@ -88,9 +88,9 @@ def altitude(mpl: mpl3115a2.MPL3115A2):
     return mpl.altitude * METERSTOFEET
 
 
-def inertial_acceleration(bno: bno055.BNO055) -> np.ndarray:
+def inertial_acceleration(bno: bno055.BNO055) -> ndarray:
     """ Return the inertial of the vehicle, in feet per second. """
-    accel = np.asarray(bno.acceleration).T  # .T to convert row vector to column vector
+    accel = asarray(bno.acceleration).T  # .T to convert row vector to column vector
     t_matrix = vehicle_to_inertial(bno.quaternion)
     inertial_accel = t_matrix * accel
     return inertial_accel * METERSTOFEET
@@ -103,7 +103,7 @@ def vehicle_to_inertial(quaternion: tuple):
     b = quaternion[1]
     c = quaternion[2]
     d = quaternion[3]
-    return np.array(
+    return array(
         [
             sqr(a) + sqr(b) - sqr(c) - sqr(d),
             2 * b * c - 2 * a * d,
@@ -122,13 +122,13 @@ def vehicle_to_inertial(quaternion: tuple):
     )
 
 
-def velocity(mpl: mpl3115a2.MPL3115A2, acceleration: np.ndarray, dt):
+def velocity(mpl: mpl3115a2.MPL3115A2, acceleration: ndarray, dt):
     VELOCITY += acceleration * dt
     VELOCITY[2] = vertical_velocity(mpl, dt)
     return VELOCITY
 
 
-def position(velocity: np.ndarray, dt):
+def position(velocity: ndarray, dt):
     POSITION += velocity * dt
     return POSITION
 

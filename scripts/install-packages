@@ -6,9 +6,10 @@ PYTHON_PACKAGES=(
     adafruit-circuitpython-bno055
     adafruit-circuitpython-mpl3115a2
     adafruit-circuitpython-servokit
+    numpy
     )
 
 # Install all packages
 for package in $PYTHON_PACKAGES; do
-    python3.7 -m pip install --user $package
+    python3 -m pip install --user $package
 done
